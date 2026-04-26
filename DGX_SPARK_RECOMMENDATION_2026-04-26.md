@@ -1,7 +1,12 @@
 # DGX Spark 코딩 모델 추천
 
 **작성일**: 2026-04-26
-**대상 하드웨어**: NVIDIA DGX Spark (GB10 Grace Blackwell, 128GB unified memory)
+**최종 수정**: 2026-04-26 (Ollama Linux 호환성 반영)
+**대상 하드웨어**: NVIDIA DGX Spark (GB10 Grace Blackwell, 128GB unified memory, Linux)
+
+> ⚠️ **중요**: Ollama 라이브러리의 `*-nvfp4`, `*-mxfp8`, `*-mlx-*` 태그는 **Apple Silicon MLX 전용**입니다. DGX Spark(Linux)에서 풀 시 `412: this model requires macOS` 오류 발생.
+>
+> Linux 환경에서는 GGUF 양자화(`q4_K_M`, `q8_0`) 또는 기본 태그를 사용해야 합니다. NVFP4 하드웨어 가속을 받으려면 Ollama가 아니라 **TensorRT-LLM** 또는 **vLLM**을 사용해야 합니다.
 
 ## 1. DGX Spark 핵심 스펙 (LLM 관점)
 
@@ -56,32 +61,54 @@
 - ✅ LiveCodeBench 77% (알고리즘)
 - ❌ SWE-bench 61% (agentic 약함)
 
-## 4. 추천 구성: 3-모델 동시 로드
+## 4. 추천 구성: 3-모델 동시 로드 (Linux/Ollama)
 
-128GB 메모리 활용 극대화:
+128GB 메모리 활용 극대화 (GGUF 호환 태그 사용):
 
-| 역할 | 모델 | 스토리지 | 용도 |
-|---|---|---|---|
-| 🔧 Agentic (PR 작성) | `qwen3.6:27b-coding-mxfp8` | 31 GB | 정확도 최우선 |
-| ⚡ 자동완성 (IDE) | `qwen3.6:35b-a3b-coding-nvfp4` | 22 GB | 100+ tok/s |
-| 🖼️ 멀티모달 | `gemma4:31b-nvfp4` | 20 GB | 스크린샷 디버깅 |
-| **합계** | | **73 GB** | **49GB KV 캐시 여유** |
+| 역할 | 모델 (Ollama 태그) | 스토리지 | 양자화 | 용도 |
+|---|---|---|---|---|
+| 🔧 Agentic (PR 작성) | `qwen3.6:27b` | 17 GB | Q4_K_M | 정확도 최우선 (SWE 74%) |
+| ⚡ 자동완성 (IDE) | `qwen3.6:35b` | 24 GB | Q4_K_M (35B-A3B MoE) | 활성 3B → 빠름 |
+| 🖼️ 멀티모달 | `gemma4:31b` | 20 GB | Q4_K_M | 스크린샷 디버깅 |
+| **합계** | | **61 GB** | | **61GB KV 캐시 여유** |
 
-### 설치 명령
+### 설치 명령 (Linux/DGX Spark)
 
 ```bash
-ollama pull qwen3.6:35b-a3b-coding-nvfp4
-ollama pull qwen3.6:27b-coding-mxfp8
-ollama pull gemma4:31b-nvfp4
+ollama pull qwen3.6:27b
+ollama pull qwen3.6:35b
+ollama pull gemma4:31b
 ```
+
+### 더 높은 정확도 원하면 (Q8_0)
+
+```bash
+ollama pull qwen3.6:35b-a3b-it-q8_0   # 약 38GB
+ollama pull gemma4:31b-it-q8_0         # 34GB
+```
+
+### MLX 전용 태그 (macOS만 가능, Linux에서 412 오류)
+
+❌ `*-nvfp4`, `*-mxfp8`, `*-mlx-bf16` — DGX Spark에서 풀 불가
+
+### NVFP4 하드웨어 가속 활용 (Ollama 외 옵션)
+
+Blackwell의 NVFP4 5세대 텐서 코어 활용을 원한다면:
+- **TensorRT-LLM**: NVIDIA 공식, FP4 직접 지원
+- **vLLM (≥0.6)**: NVFP4 양자화 모델 추론 지원
+- **HuggingFace + bitsandbytes**: 일부 FP4 지원
+
+이 경우 Ollama가 아닌 직접 추론 서버 구축이 필요하며, HF Hub의 `*-FP4` 또는 `*-NVFP4` 변형을 받아야 합니다.
 
 ## 5. 한 줄 결론
 
-> **단일 추천 → `qwen3.6:35b-a3b-coding-nvfp4` (22GB)**
+> **Ollama 단일 추천 → `qwen3.6:35b` (24GB, Q4_K_M, 35B-A3B MoE)**
 >
-> Spark의 강점(NVFP4 HW 가속 + 통합 메모리)을 최적 활용. MoE 활성 3B + NVFP4 네이티브로 디코딩 100+ tok/s, agentic 코딩 SWE-bench 70% 확보.
+> 활성 3B MoE로 대역폭 제약 회피 → 디코딩 빠름. Agentic 코딩 SWE-bench ~70% 확보. 통합 메모리 여유로 큰 KV 캐시 가능.
 >
-> **여유 있다면 + `qwen3.6:27b-coding-mxfp8`** (31GB) 추가. 정확도 최우선 워크로드 위임.
+> **여유 있다면 + `qwen3.6:27b`** (17GB) 추가. SWE-bench 74% 정확도 워크로드용.
+>
+> **NVFP4 HW 가속 풀 활용을 원하면** Ollama 대신 TensorRT-LLM 사용 (별도 설정).
 
 ## 6. DGX Spark 활용 팁
 
