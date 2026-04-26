@@ -79,4 +79,4 @@ DGX Spark의 273 GB/s 기준 이론 최대값:
 - [DGX Spark Hardware Overview — NVIDIA](https://docs.nvidia.com/dgx/dgx-spark/hardware.html)
 - [DGX Spark In-Depth Review — LMSYS](https://www.lmsys.org/blog/2025-10-13-nvidia-dgx-spark/)
 - [How DGX Spark Enables Intensive AI Tasks — NVIDIA Blog](https://developer.nvidia.com/blog/how-nvidia-dgx-sparks-performance-enables-intensive-ai-tasks/)
-- 본 연구의 실측 (`ttft-results.md`)
+- 본 연구의 실측 (`latency-results.md`)

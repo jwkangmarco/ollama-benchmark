@@ -159,6 +159,6 @@ git remote set-url origin git@github.com:jwkangmarco/ollama-benchmark.git
 
 ## 출처 및 관련 파일
 
-- 벤치마크 데이터: [`ttft-results.md`](ttft-results.md)
+- 벤치마크 데이터: [`latency-results.md`](latency-results.md)
 - 모델 추천 근거: [`recommendations.md`](recommendations.md)
 - 양자화 호환성: [`quantization-platforms.md`](quantization-platforms.md)
